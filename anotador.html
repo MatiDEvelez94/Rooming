@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Anotador de Puntos</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: #2e2e2e;
+    --border-bright: #3d3d3d;
+    --accent: #e8ff00;
+    --accent2: #00ffe0;
+    --negative: #ff4d6d;
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --text-faint: #444;
+    --total-bg: #1e1e12;
+    --total-border: #5c6300;
+    --radius: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── PANTALLA DE INICIO ── */
+  #setup-screen {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, #2a2a00 0%, transparent 70%),
+      var(--bg);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 16vw, 88px);
+    letter-spacing: 4px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(232,255,0,0.3);
+    margin-bottom: 6px;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+  }
+
+  .setup-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ── INPUTS GENÉRICOS ── */
+  .text-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .text-input::-webkit-inner-spin-button,
+  .text-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .text-input::placeholder { color: var(--text-faint); }
+  .text-input:focus { border-color: var(--accent); }
+
+  /* ── SELECTOR DE CANTIDAD ── */
+  .qty-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .qty-btn {
+    width: 52px;
+    height: 52px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 22px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .qty-btn:active { background: var(--border-bright); color: var(--accent); }
+
+  .qty-display {
+    flex: 1;
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+    line-height: 52px;
+  }
+
+  /* ── LISTA DE NOMBRES ── */
+  .names-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeUp 0.25s ease both;
+  }
+
+  .player-number {
+    width: 28px;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: right;
+    letter-spacing: 1px;
+  }
+
+  /* ── STEP INDICATOR ── */
+  .steps {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border-bright);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .step-dot.active { background: var(--accent); transform: scale(1.4); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    line-height: 1.6;
+  }
+  .hint span { color: var(--accent2); }
+
+  .btn-generate {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(232,255,0,0.2);
+  }
+  .btn-generate:active { transform: scale(0.97); }
+
+  /* ── STEP TRANSITIONS ── */
+  .step { display: none; flex-direction: column; gap: 20px; }
+  .step.active { display: flex; animation: fadeUp 0.3s ease both; }
+
+  /* ── PANTALLA DEL TABLERO ── */
+  #board-screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  .board-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .board-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .btn-reset {
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-reset:hover { border-color: var(--negative); color: var(--negative); }
+
+  /* ── TOTALES EN CABECERA ── */
+  .scoreboard {
+    display: flex;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--total-bg);
+    border-bottom: 1px solid var(--total-border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .scoreboard::-webkit-scrollbar { display: none; }
+
+  .score-chip {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    min-width: 72px;
+    gap: 3px;
+    transition: border-color 0.3s;
+  }
+
+  .score-chip.leader { border-color: var(--accent); box-shadow: 0 0 12px rgba(232,255,0,0.15); }
+
+  .chip-name {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chip-score {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .chip-score.negative { color: var(--negative); }
+  .chip-score.positive { color: var(--accent); }
+
+  /* ── TABLA ── */
+  .table-wrapper {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    padding: 0 0 80px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface2);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-bright);
+    text-align: center;
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    background: var(--surface2);
+    text-align: center;
+    min-width: 52px;
+    border-right: 1px solid var(--border-bright);
+  }
+
+  tbody tr:nth-child(odd) td { background: var(--bg); }
+  tbody tr:nth-child(even) td { background: var(--surface); }
+  tbody tr:hover td { background: #252525; }
+
+  tbody td {
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+    vertical-align: middle;
+  }
+
+  tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    padding: 0 8px;
+    border-right: 1px solid var(--border);
+    min-width: 52px;
+    background: inherit;
+  }
+
+  .score-input {
+    width: 100%;
+    min-width: 80px;
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  .score-input::-webkit-inner-spin-button,
+  .score-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .score-input:focus {
+    background: rgba(232,255,0,0.06);
+    color: var(--accent);
+  }
+
+  .score-input.has-negative { color: var(--negative); }
+  .score-input.has-positive { color: #cfffbb; }
+
+  /* ── FILA TOTAL ── */
+  tfoot tr td {
+    background: var(--total-bg) !important;
+    border-top: 2px solid var(--total-border);
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  tfoot tr td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    border-right: 1px solid var(--total-border);
+    background: var(--total-bg) !important;
+  }
+
+  .total-value {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+  }
+
+  .total-value.negative { color: var(--negative); }
+  .total-value.positive { color: var(--accent); }
+
+  /* ── BTN NUEVA PARTIDA ── */
+  .fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 200;
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(232,255,0,0.25);
+    transition: transform 0.1s;
+  }
+
+  .fab:active { transform: scale(0.95); }
+
+  /* ── ERRORES ── */
+  .error-msg {
+    color: var(--negative);
+    font-size: 11px;
+    letter-spacing: 1px;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  /* ── ANIMACIÓN ENTRADA ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .board-header, .scoreboard, .table-wrapper {
+    animation: fadeUp 0.3s ease both;
+  }
+  .table-wrapper { animation-delay: 0.1s; }
+</style>
+</head>
+<body>
+
+<!-- ──── SETUP ──── -->
+<div id="setup-screen">
+  <div class="logo">SCORE</div>
+  <div class="logo-sub">Anotador de Partidas</div>
+
+  <div class="setup-card">
+    <div class="steps">
+      <div class="step-dot active" id="dot-0"></div>
+      <div class="step-dot" id="dot-1"></div>
+    </div>
+
+    <!-- PASO 1: cantidad -->
+    <div class="step active" id="step-1">
+      <div>
+        <div class="field-label">¿Cuántos jugadores?</div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <div class="qty-display" id="qty-display">2</div>
+          <button class="qty-btn" onclick="changeQty(+1)">+</button>
+        </div>
+        <div class="hint" style="margin-top:8px">Entre <span>2</span> y <span>6</span> jugadores.</div>
+      </div>
+      <button class="btn-generate" onclick="goToStep2()">CONTINUAR →</button>
+    </div>
+
+    <!-- PASO 2: nombres -->
+    <div class="step" id="step-2">
+      <div>
+        <div class="field-label">Nombre de cada jugador</div>
+        <div class="names-list" id="names-list"></div>
+        <div class="error-msg" id="error-msg" style="margin-top:10px">⚠ Completá todos los nombres.</div>
+      </div>
+      <button class="btn-generate" onclick="generateBoard()">GENERAR TABLERO</button>
+      <button class="btn-reset" style="text-align:center" onclick="goToStep1()">← Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ──── TABLERO ──── -->
+<div id="board-screen">
+  <div class="board-header">
+    <div class="board-title">SCORE</div>
+    <button class="btn-reset" onclick="goBack()">↩ NUEVA</button>
+  </div>
+
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <div class="table-wrapper">
+    <table id="score-table">
+      <thead><tr id="table-head"></tr></thead>
+      <tbody id="table-body"></tbody>
+      <tfoot><tr id="table-foot"></tr></tfoot>
+    </table>
+  </div>
+</div>
+
+<script>
+  const ROUNDS = 15;
+  let players = [];
+  let qty = 2;
+
+  // ── PASO 1: cantidad ──
+  function changeQty(delta) {
+    qty = Math.min(6, Math.max(2, qty + delta));
+    document.getElementById('qty-display').textContent = qty;
+  }
+
+  function goToStep1() {
+    document.getElementById('step-2').classList.remove('active');
+    document.getElementById('step-1').classList.add('active');
+    document.getElementById('dot-0').classList.add('active');
+    document.getElementById('dot-1').classList.remove('active');
+  }
+
+  function goToStep2() {
+    document.getElementById('step-1').classList.remove('active');
+    document.getElementById('step-2').classList.add('active');
+    document.getElementById('dot-0').classList.remove('active');
+    document.getElementById('dot-1').classList.add('active');
+
+    // Generar campos de nombre
+    const list = document.getElementById('names-list');
+    // Conservar valores existentes si ya había campos
+    const existing = Array.from(list.querySelectorAll('input')).map(i => i.value);
+    list.innerHTML = '';
+    for (let i = 0; i < qty; i++) {
+      const row = document.createElement('div');
+      row.className = 'name-row';
+      row.style.animationDelay = `${i * 0.05}s`;
+      row.innerHTML = `
+        <div class="player-number">${i + 1}</div>
+        <input
+          class="text-input"
+          type="text"
+          placeholder="Jugador ${i + 1}"
+          id="name-${i}"
+          autocomplete="off"
+          spellcheck="false"
+          value="${escHtml(existing[i] || '')}"
+        >`;
+      list.appendChild(row);
+    }
+    // Focus en primer campo vacío
+    const firstEmpty = Array.from(list.querySelectorAll('input')).find(i => !i.value);
+    if (firstEmpty) setTimeout(() => firstEmpty.focus(), 300);
+  }
+
+  // ── GENERAR TABLERO ──
+  function generateBoard() {
+    const inputs = document.querySelectorAll('#names-list input');
+    const names = Array.from(inputs).map(i => i.value.trim());
+    if (names.some(n => n === '')) {
+      document.getElementById('error-msg').classList.add('visible');
+      return;
+    }
+    document.getElementById('error-msg').classList.remove('visible');
+    players = names;
+
+    buildTable();
+    document.getElementById('setup-screen').style.display = 'none';
+    const bs = document.getElementById('board-screen');
+    bs.style.display = 'flex';
+    bs.style.flexDirection = 'column';
+  }
+
+  function buildTable() {
+    // ── Cabecera
+    const thead = document.getElementById('table-head');
+    thead.innerHTML = '<th>#</th>' + players.map(p =>
+      `<th>${escHtml(p)}</th>`
+    ).join('');
+
+    // ── Body
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+    for (let r = 1; r <= ROUNDS; r++) {
+      const tr = document.createElement('tr');
+      let cells = `<td>${r}</td>`;
+      players.forEach((p, pi) => {
+        cells += `<td><input
+          class="score-input"
+          type="number"
+          inputmode="numeric"
+          placeholder="—"
+          data-round="${r}"
+          data-player="${pi}"
+          oninput="onScoreInput(this)"
+          onfocus="this.select()"
+        ></td>`;
+      });
+      tr.innerHTML = cells;
+      tbody.appendChild(tr);
+    }
+
+    // ── Footer totales
+    const tfoot = document.getElementById('table-foot');
+    tfoot.innerHTML = '<td>TOTAL</td>' + players.map((_, pi) =>
+      `<td><span class="total-value" id="total-${pi}">0</span></td>`
+    ).join('');
+
+    // ── Scoreboard chips
+    buildScoreboard();
+    recalcAll();
+  }
+
+  function buildScoreboard() {
+    const sb = document.getElementById('scoreboard');
+    sb.innerHTML = players.map((p, pi) => `
+      <div class="score-chip" id="chip-${pi}">
+        <div class="chip-name">${escHtml(p)}</div>
+        <div class="chip-score" id="chip-score-${pi}">0</div>
+      </div>
+    `).join('');
+  }
+
+  function onScoreInput(input) {
+    const val = parseFloat(input.value);
+    input.classList.remove('has-negative', 'has-positive');
+    if (!isNaN(val)) {
+      if (val < 0) input.classList.add('has-negative');
+      else if (val > 0) input.classList.add('has-positive');
+    }
+    const pi = parseInt(input.dataset.player);
+    recalcPlayer(pi);
+  }
+
+  function recalcPlayer(pi) {
+    const inputs = document.querySelectorAll(`input[data-player="${pi}"]`);
+    let total = 0;
+    inputs.forEach(inp => {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v)) total += v;
+    });
+
+    // Actualizar fila total
+    const tv = document.getElementById(`total-${pi}`);
+    tv.textContent = total;
+    tv.classList.remove('negative', 'positive');
+    if (total < 0) tv.classList.add('negative');
+    else if (total > 0) tv.classList.add('positive');
+
+    // Actualizar chip
+    const cs = document.getElementById(`chip-score-${pi}`);
+    cs.textContent = total;
+    cs.classList.remove('negative', 'positive');
+    if (total < 0) cs.classList.add('negative');
+    else if (total > 0) cs.classList.add('positive');
+
+    updateLeader();
+  }
+
+  function recalcAll() {
+    players.forEach((_, pi) => recalcPlayer(pi));
+  }
+
+  function updateLeader() {
+    let max = -Infinity;
+    let leaders = [];
+    players.forEach((_, pi) => {
+      const v = parseFloat(document.getElementById(`chip-score-${pi}`).textContent) || 0;
+      if (v > max) { max = v; leaders = [pi]; }
+      else if (v === max) leaders.push(pi);
+    });
+    players.forEach((_, pi) => {
+      document.getElementById(`chip-${pi}`).classList.toggle('leader', leaders.includes(pi) && max > 0);
+    });
+  }
+
+  function goBack() {
+    document.getElementById('board-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'flex';
+    goToStep1();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Enter en campos de nombre → siguiente campo o generar
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('step-2').classList.contains('active')) {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('#names-list input'));
+      const idx = inputs.indexOf(document.activeElement);
+      if (idx >= 0 && idx < inputs.length - 1) inputs[idx + 1].focus();
+      else generateBoard();
+    }
+  });
+</script>
+</body>
+</html>

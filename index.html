@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Anotador de Puntos</title>
+<title>Rooming</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -358,10 +358,17 @@
     background: inherit;
   }
 
+  /* ── CELDA DE PUNTAJE (input + botón signo) ── */
+  .score-cell {
+    display: flex;
+    align-items: center;
+    min-width: 100px;
+  }
+
   .score-input {
-    width: 100%;
-    min-width: 80px;
-    padding: 12px 8px;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 4px 12px 8px;
     background: transparent;
     border: none;
     color: var(--text);
@@ -382,6 +389,42 @@
 
   .score-input.has-negative { color: var(--negative); }
   .score-input.has-positive { color: #cfffbb; }
+
+  /* ── BOTÓN CAMBIO DE SIGNO ── */
+  .btn-sign {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    margin-right: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  .btn-sign:active {
+    background: var(--negative);
+    border-color: var(--negative);
+    color: #fff;
+    transform: scale(0.9);
+  }
+
+  .btn-sign.is-negative {
+    color: var(--negative);
+    border-color: var(--negative);
+    background: rgba(255,77,109,0.1);
+  }
 
   /* ── FILA TOTAL ── */
   tfoot tr td {
@@ -458,8 +501,8 @@
 
 <!-- ──── SETUP ──── -->
 <div id="setup-screen">
-  <div class="logo">SCORE</div>
-  <div class="logo-sub">Anotador de Partidas</div>
+  <div class="logo">ROOMING</div>
+  <div class="logo-sub">Anotador de Puntos</div>
 
   <div class="setup-card">
     <div class="steps">
@@ -497,7 +540,7 @@
 <!-- ──── TABLERO ──── -->
 <div id="board-screen">
   <div class="board-header">
-    <div class="board-title">SCORE</div>
+    <div class="board-title">ROOMING</div>
     <button class="btn-reset" onclick="goBack()">↩ NUEVA</button>
   </div>
 
@@ -595,16 +638,27 @@
       const tr = document.createElement('tr');
       let cells = `<td>${r}</td>`;
       players.forEach((p, pi) => {
-        cells += `<td><input
-          class="score-input"
-          type="number"
-          inputmode="numeric"
-          placeholder="—"
-          data-round="${r}"
-          data-player="${pi}"
-          oninput="onScoreInput(this)"
-          onfocus="this.select()"
-        ></td>`;
+        cells += `<td>
+          <div class="score-cell">
+            <input
+              class="score-input"
+              type="number"
+              inputmode="numeric"
+              placeholder="—"
+              data-round="${r}"
+              data-player="${pi}"
+              oninput="onScoreInput(this)"
+              onfocus="this.select()"
+            >
+            <button
+              class="btn-sign"
+              data-player="${pi}"
+              onclick="toggleSign(this)"
+              tabindex="-1"
+              aria-label="Cambiar signo"
+            >±</button>
+          </div>
+        </td>`;
       });
       tr.innerHTML = cells;
       tbody.appendChild(tr);
@@ -612,7 +666,7 @@
 
     // ── Footer totales
     const tfoot = document.getElementById('table-foot');
-    tfoot.innerHTML = '<td>TOTAL</td>' + players.map((_, pi) =>
+    tfoot.innerHTML = '<td>TOTAL<br><span style="font-size:8px;letter-spacing:2px;color:var(--accent);opacity:0.7">PUNTOS</span></td>' + players.map((_, pi) =>
       `<td><span class="total-value" id="total-${pi}">0</span></td>`
     ).join('');
 
@@ -638,8 +692,20 @@
       if (val < 0) input.classList.add('has-negative');
       else if (val > 0) input.classList.add('has-positive');
     }
+    // Sincronizar estado visual del botón de signo
+    const btn = input.parentElement.querySelector('.btn-sign');
+    if (btn) btn.classList.toggle('is-negative', !isNaN(val) && val < 0);
     const pi = parseInt(input.dataset.player);
     recalcPlayer(pi);
+  }
+
+  function toggleSign(btn) {
+    const input = btn.parentElement.querySelector('.score-input');
+    const val = parseFloat(input.value);
+    if (isNaN(val) || val === 0) return;
+    input.value = (-val).toString();
+    // Disparar lógica normal de input
+    onScoreInput(input);
   }
 
   function recalcPlayer(pi) {

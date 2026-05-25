@@ -495,6 +495,46 @@
     animation: fadeUp 0.3s ease both;
   }
   .table-wrapper { animation-delay: 0.1s; }
+
+  /* ── NOMBRES EN CABECERA Y NÚMEROS DE RONDA ── */
+  #score-table thead th {
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(232,255,0,0.25);
+  }
+  #score-table tbody td:first-child,
+  #score-table tfoot td:first-child {
+    color: var(--accent);
+    opacity: 0.85;
+  }
+
+  /* ── BOTÓN LEER TODOS ── */
+  .btn-speak {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .btn-speak:hover { background: rgba(232,255,0,0.1); }
+  .btn-speak:active { background: var(--accent); color: #0f0f0f; }
+  .btn-speak.speaking {
+    background: rgba(232,255,0,0.15);
+    animation: pulse-speak 1s infinite;
+  }
+  @keyframes pulse-speak {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,255,0,0.4); }
+    50%       { box-shadow: 0 0 0 6px rgba(232,255,0,0); }
+  }
 </style>
 </head>
 <body>
@@ -541,6 +581,7 @@
 <div id="board-screen">
   <div class="board-header">
     <div class="board-title">ROOMING</div>
+    <button class="btn-speak" id="btn-speak" onclick="speakAll()">🔊 LEER</button>
     <button class="btn-reset" onclick="goBack()">↩ NUEVA</button>
   </div>
 
@@ -756,6 +797,41 @@
     goToStep1();
   }
 
+  function speakAll() {
+    if (!('speechSynthesis' in window)) {
+      alert('Tu navegador no soporta lectura de voz.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+
+    // Construir el texto con todos los jugadores y sus totales
+    const lines = players.map((name, pi) => {
+      const total = parseFloat(document.getElementById(`chip-score-${pi}`).textContent) || 0;
+      return `${name}: ${total} puntos`;
+    });
+    const texto = lines.join('. ');
+
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-AR';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    const btn = document.getElementById('btn-speak');
+    btn.classList.add('speaking');
+    btn.textContent = '🔊 ...';
+
+    utterance.onend = () => {
+      btn.classList.remove('speaking');
+      btn.innerHTML = '🔊 LEER';
+    };
+    utterance.onerror = () => {
+      btn.classList.remove('speaking');
+      btn.innerHTML = '🔊 LEER';
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
@@ -773,3 +849,4 @@
 </script>
 </body>
 </html>
+
